@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/shomali11/slacker"
+	"github.com/spf13/viper"
 	"log"
-	"os"
 	"strconv"
 	"time"
 )
@@ -22,7 +22,21 @@ func printCommandEvents(analyticsChannel <-chan *slacker.CommandEvent) {
 }
 
 func main() {
-	bot := slacker.NewClient(os.Getenv("SLACK_BOT_TOKEN"), os.Getenv("SLACK_APP_TOKEN"))
+	viper.AddConfigPath(".")
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; ignore error if desired
+		} else {
+			// Config file was found but another error was produced
+			log.Fatal("Fatal error: ", err)
+		}
+	}
+
+	bot := slacker.NewClient(viper.GetString("SLACK_BOT_TOKEN"), viper.GetString("SLACK_APP_TOKEN"))
 
 	go printCommandEvents(bot.CommandEvents())
 
@@ -40,7 +54,9 @@ func main() {
 
 			r := fmt.Sprintf("Your age is: %d", age)
 
-			response.Reply(r)
+			if err := response.Reply(r); err != nil {
+				fmt.Println("Failed to reply!")
+			}
 		},
 	})
 
